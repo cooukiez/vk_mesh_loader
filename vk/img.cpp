@@ -85,9 +85,7 @@ void App::create_img_view(VCW_Image *p_img, const VkImageAspectFlags aspect_flag
         throw std::runtime_error("failed to create image view.");
 }
 
-void App::create_sampler(VCW_Image *p_img, const VkFilter filter, const VkSamplerAddressMode address_mode) const {
-    p_img->has_sampler = true;
-
+VkSampler App::create_sampler(const VkFilter filter, const VkSamplerAddressMode address_mode) const {
     VkSamplerCreateInfo sampler_info{};
     sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     sampler_info.magFilter = filter;
@@ -103,8 +101,16 @@ void App::create_sampler(VCW_Image *p_img, const VkFilter filter, const VkSample
     sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
     sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-    if (vkCreateSampler(dev, &sampler_info, nullptr, &p_img->sampler) != VK_SUCCESS)
+    VkSampler sampler;
+    if (vkCreateSampler(dev, &sampler_info, nullptr, &sampler) != VK_SUCCESS)
         throw std::runtime_error("failed to create sampler.");
+
+    return sampler;
+}
+
+void App::create_sampler(VCW_Image *p_img, const VkFilter filter, const VkSamplerAddressMode address_mode) const {
+    p_img->combined_img_sampler = true;
+    p_img->sampler = create_sampler(filter, address_mode);
 }
 
 VkAccessFlags App::get_access_mask(const VkImageLayout layout) {
@@ -204,7 +210,7 @@ void App::copy_img(VkCommandBuffer cmd_buf, const VCW_Image &src, const VCW_Imag
 }
 
 void App::clean_up_img(const VCW_Image &img) const {
-    if (img.has_sampler)
+    if (img.combined_img_sampler)
         vkDestroySampler(dev, img.sampler, nullptr);
 
     vkDestroyImageView(dev, img.view, nullptr);

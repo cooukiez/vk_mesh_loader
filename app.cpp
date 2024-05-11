@@ -8,7 +8,6 @@
 #include <stb_image.h>
 
 #define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
 
 void App::init_app() {
     //
@@ -27,8 +26,6 @@ void App::init_app() {
     // pipeline creation
     //
     create_rendp();
-    create_desc_pool_layout();
-    create_pipe();
 
     create_cmd_pool();
 
@@ -36,11 +33,15 @@ void App::init_app() {
 
     load_model();
     create_textures();
+    create_textures_sampler();
 
     create_vert_buf();
     create_index_buf();
 
     create_frame_bufs(swap_imgs);
+
+    create_desc_pool_layout();
+    create_pipe();
 
     create_desc_pool(MAX_FRAMES_IN_FLIGHT + IMGUI_DESCRIPTOR_COUNT);
     write_desc_pool();
@@ -56,44 +57,55 @@ void App::init_app() {
 }
 
 void App::load_model() {
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
     std::string warn, err;
-
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models/sponza/sponza.obj", "models/sponza"))
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH, TEXTURE_PATH))
         throw std::runtime_error(err);
     std::cout << warn << std::endl;
 
     std::unordered_map<Vertex, uint32_t> unique_vertices{};
 
     for (const auto &shape: shapes) {
-        for (const auto &index: shape.mesh.indices) {
-            Vertex vertex{};
+        size_t index_offset = 0;
+        for (size_t i = 0; i < shape.mesh.num_face_vertices.size(); i++) {
+            size_t face_vertices = shape.mesh.num_face_vertices[i];
+            size_t mat_id = shape.mesh.material_ids[i];
 
-            vertex.pos = {
-                attrib.vertices[3 * index.vertex_index + 0],
-                attrib.vertices[3 * index.vertex_index + 1],
-                attrib.vertices[3 * index.vertex_index + 2]
-            };
+            if (mat_id > materials.size())
+                std::cout << "material id out of bounds." << std::endl;
 
-            vertex.normal = {
-                attrib.normals[3 * index.normal_index + 0],
-                attrib.normals[3 * index.normal_index + 1],
-                attrib.normals[3 * index.normal_index + 2]
-            };
+            for (size_t j = 0; j < face_vertices; j++) {
+                tinyobj::index_t index = shape.mesh.indices[index_offset + j];
 
-            vertex.uv = {
-                attrib.texcoords[2 * index.texcoord_index + 0],
-                attrib.texcoords[2 * index.texcoord_index + 1]
-            };
+                Vertex vertex{};
 
-            if (!unique_vertices.contains(vertex)) {
-                unique_vertices[vertex] = static_cast<uint32_t>(vertices.size());
-                vertices.push_back(vertex);
+                vertex.pos = {
+                    attrib.vertices[3 * index.vertex_index + 0],
+                    attrib.vertices[3 * index.vertex_index + 1],
+                    attrib.vertices[3 * index.vertex_index + 2]
+                };
+
+                vertex.normal = {
+                    attrib.normals[3 * index.normal_index + 0],
+                    attrib.normals[3 * index.normal_index + 1],
+                    attrib.normals[3 * index.normal_index + 2]
+                };
+
+                vertex.uv = {
+                    attrib.texcoords[2 * index.texcoord_index + 0],
+                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                };
+
+                vertex.mat_id = static_cast<uint32_t>(mat_id);
+
+                if (!unique_vertices.contains(vertex)) {
+                    unique_vertices[vertex] = static_cast<uint32_t>(vertices.size());
+                    vertices.push_back(vertex);
+                }
+
+                indices.push_back(unique_vertices[vertex]);
             }
 
-            indices.push_back(unique_vertices[vertex]);
+            index_offset += face_vertices;
         }
     }
 }
@@ -132,37 +144,58 @@ void App::create_index_buf() {
 }
 
 void App::create_textures() {
-    int tex_width, tex_height, tex_channels;
-    stbi_uc *pixels = stbi_load("textures/texture.jpg", &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
-    VkDeviceSize img_size = tex_width * tex_height * 4;
+    std::cout << materials.size() << std::endl;
+    for (const auto &mat: materials) {
+        if (mat.diffuse_texname.empty())
+            continue;
 
-    if (!pixels)
-        throw std::runtime_error("failed to load texture image.");
+        std::cout << "loading texture: " << mat.diffuse_texname << std::endl;
 
-    VCW_Buffer staging_buf = create_buf(img_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        /*
+        if (textures.find(mat.diffuse_texname) != textures.end())
+            continue;
+            */
 
-    cp_data_to_buf(&staging_buf, pixels);
+        int tex_width, tex_height, tex_channels;
+        stbi_uc *pixels = stbi_load((TEXTURE_PATH + mat.diffuse_texname).c_str(), &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
+        const VkDeviceSize img_size = tex_width * tex_height * 4;
 
-    stbi_image_free(pixels);
+        if (!pixels)
+            throw std::runtime_error("failed to load texture image.");
 
-    const VkExtent2D extent = {static_cast<uint32_t>(tex_width), static_cast<uint32_t>(tex_height)};
-    tex_img = create_img(extent, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
-                         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        VCW_Buffer staging_buf = create_buf(img_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    VkCommandBuffer cmd_buf = begin_single_time_cmd();
-    transition_img_layout(cmd_buf, &tex_img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                          VK_PIPELINE_STAGE_TRANSFER_BIT);
-    cp_buf_to_img(cmd_buf, staging_buf, tex_img, extent);
-    transition_img_layout(cmd_buf, &tex_img, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-    end_single_time_cmd(cmd_buf);
+        cp_data_to_buf(&staging_buf, pixels);
 
-    create_img_view(&tex_img, VK_IMAGE_ASPECT_COLOR_BIT);
-    create_sampler(&tex_img, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+        stbi_image_free(pixels);
 
-    clean_up_buf(staging_buf);
+        const VkExtent2D extent = {static_cast<uint32_t>(tex_width), static_cast<uint32_t>(tex_height)};
+        VCW_Image tex_img = create_img(extent, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+                                       VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        VkCommandBuffer cmd_buf = begin_single_time_cmd();
+        transition_img_layout(cmd_buf, &tex_img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                              VK_PIPELINE_STAGE_TRANSFER_BIT);
+        cp_buf_to_img(cmd_buf, staging_buf, tex_img, extent);
+        transition_img_layout(cmd_buf, &tex_img, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                              VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        end_single_time_cmd(cmd_buf);
+
+        create_img_view(&tex_img, VK_IMAGE_ASPECT_COLOR_BIT);
+
+        clean_up_buf(staging_buf);
+
+        /*
+        textures[mat.diffuse_texname] = tex_img;
+        */
+        textures.push_back(tex_img);
+    }
+}
+
+void App::create_textures_sampler() {
+    sampler = create_sampler(VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 }
 
 void App::create_depth_resources() {
@@ -176,24 +209,31 @@ void App::create_depth_resources() {
 void App::create_desc_pool_layout() {
     std::vector<VkDescriptorSetLayoutBinding> bindings;
     uint32_t last_binding = 0;
-
     VkDescriptorSetLayoutBinding sampler_layout_binding{};
     sampler_layout_binding.binding = last_binding;
     sampler_layout_binding.descriptorCount = 1;
-    sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
     sampler_layout_binding.pImmutableSamplers = nullptr;
     sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     bindings.push_back(sampler_layout_binding);
-    // last_binding++;
+    last_binding++;
+
+    VkDescriptorSetLayoutBinding textures_layout_binding{};
+    textures_layout_binding.binding = last_binding;
+    textures_layout_binding.descriptorCount = static_cast<uint32_t>(textures.size());
+    textures_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    textures_layout_binding.pImmutableSamplers = nullptr;
+    textures_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings.push_back(textures_layout_binding);
+    last_binding++;
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         add_desc_set_layout(static_cast<uint32_t>(bindings.size()), bindings.data());
     }
 
-    uint32_t combined_img_samplers = 0;
-    combined_img_samplers += MAX_FRAMES_IN_FLIGHT;
-    combined_img_samplers += IMGUI_DESCRIPTOR_COUNT;
-    add_pool_size(combined_img_samplers, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    add_pool_size(1, VK_DESCRIPTOR_TYPE_SAMPLER);
+    add_pool_size(MAX_FRAMES_IN_FLIGHT * textures.size(), VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+    add_pool_size(IMGUI_DESCRIPTOR_COUNT, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 }
 
 void App::create_pipe() {
@@ -330,7 +370,10 @@ void App::create_pipe() {
 void App::write_desc_pool() const {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         uint32_t last_binding = 0;
-        write_img_desc_binding(tex_img, i, last_binding, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        write_sampler_desc_binding(sampler, static_cast<uint32_t>(i), last_binding);
+        last_binding++;
+        write_img_desc_array(textures, static_cast<uint32_t>(i), last_binding, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+        last_binding++;
     }
 }
 
@@ -497,7 +540,7 @@ void App::clean_up() {
     clean_up_pipe();
     clean_up_desc();
 
-    clean_up_img(tex_img);
+    // clean_up_img(tex_img);
 
     clean_up_buf(vert_buf);
     clean_up_buf(index_buf);

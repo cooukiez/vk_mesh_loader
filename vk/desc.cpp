@@ -65,12 +65,28 @@ void App::write_buf_desc_binding(const VCW_Buffer &buf, const uint32_t dst_set, 
     vkUpdateDescriptorSets(dev, 1, &write, 0, nullptr);
 }
 
+void App::write_sampler_desc_binding(VkSampler sampler, const uint32_t dst_set, const uint32_t dst_binding) const {
+    VkDescriptorImageInfo img_info{};
+    img_info.sampler = sampler;
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = desc_sets[dst_set];
+    write.dstBinding = dst_binding;
+    write.dstArrayElement = 0;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    write.descriptorCount = 1;
+    write.pImageInfo = &img_info;
+
+    vkUpdateDescriptorSets(dev, 1, &write, 0, nullptr);
+}
+
 void App::write_img_desc_binding(const VCW_Image &img, const uint32_t dst_set, const uint32_t dst_binding,
                                  const VkDescriptorType desc_type) const {
     VkDescriptorImageInfo img_info{};
     img_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     img_info.imageView = img.view;
-    if (img.has_sampler)
+    if (img.combined_img_sampler)
         img_info.sampler = img.sampler;
 
     VkWriteDescriptorSet write{};
@@ -81,6 +97,30 @@ void App::write_img_desc_binding(const VCW_Image &img, const uint32_t dst_set, c
     write.descriptorType = desc_type;
     write.descriptorCount = 1;
     write.pImageInfo = &img_info;
+
+    vkUpdateDescriptorSets(dev, 1, &write, 0, nullptr);
+}
+
+void App::write_img_desc_array(const std::vector<VCW_Image> &imgs, const uint32_t dst_set, const uint32_t dst_binding,
+                               const VkDescriptorType desc_type) const {
+    std::vector<VkDescriptorImageInfo> img_infos;
+    for (auto &img: imgs) {
+        VkDescriptorImageInfo img_info{};
+        img_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        img_info.imageView = img.view;
+        if (img.combined_img_sampler)
+            img_info.sampler = img.sampler;
+        img_infos.push_back(img_info);
+    }
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = desc_sets[dst_set];
+    write.dstBinding = dst_binding;
+    write.dstArrayElement = 0;
+    write.descriptorType = desc_type;
+    write.descriptorCount = static_cast<uint32_t>(img_infos.size());
+    write.pImageInfo = img_infos.data();
 
     vkUpdateDescriptorSets(dev, 1, &write, 0, nullptr);
 }

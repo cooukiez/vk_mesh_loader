@@ -30,25 +30,15 @@ const std::vector<const char *> dev_exts = {
 //
 // scaling resolution
 //
-// #define INTERMEDIATE_RENDER_TARGET
-// #define RENDER_TARGET_RES_DIV 3
 #define FULLSCREEN_RES_DIV 1
 // #define IMGUI_SCALE_OVERLAY
-//
-// for testing blit vs. copy performance for RENDER_TARGET_RES_DIV of 1
-//
-// #define TESTING_COPY_INSTEAD_BLIT_IMG
 
 const VkFormat PREFERRED_FORMAT = VK_FORMAT_B8G8R8A8_SRGB;
 const VkColorSpaceKHR PREFERRED_COLOR_SPACE = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 const VkPresentModeKHR PREFERRED_PRES_MODE = VK_PRESENT_MODE_FIFO_KHR;
 const VkCompositeAlphaFlagBitsKHR PREFERRED_COMPOSITE_ALPHA = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
-#ifdef INTERMEDIATE_RENDER_TARGET
-const VkImageUsageFlags SWAP_IMG_USAGE = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-#else
 const VkImageUsageFlags SWAP_IMG_USAGE = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-#endif
 
 const VkComponentMapping DEFAULT_COMPONENT_MAPPING = {.r = VK_COMPONENT_SWIZZLE_IDENTITY, .g = VK_COMPONENT_SWIZZLE_IDENTITY, .b = VK_COMPONENT_SWIZZLE_IDENTITY, .a = VK_COMPONENT_SWIZZLE_IDENTITY};
 const VkImageSubresourceRange DEFAULT_SUBRESOURCE_RANGE = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1};
@@ -63,28 +53,12 @@ const VkPolygonMode POLYGON_MODE = VK_POLYGON_MODE_FILL;
 const VkCullModeFlags CULL_MODE = VK_CULL_MODE_NONE;
 const VkFrontFace FRONT_FACE = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
-// #define BIND_SAMPLE_TEXTURE
-#define ENABLE_DEPTH_TESTING
-
-// #define ENABLE_UNIFORM
-const VkShaderStageFlags UNIFORM_STAGE = VK_SHADER_STAGE_VERTEX_BIT;
-
-#define ENABLE_PUSH_CONSTANTS
 const VkShaderStageFlags PUSH_CONSTANTS_STAGE = VK_SHADER_STAGE_ALL_GRAPHICS;
 
-//
-// select which vertex set you want to use
-// just comment out the sets you do not want
-// (if none selected default is triangle)
-//
-#define CUBE_DATA
-// #define PLATE_DATA
-// #define SCREEN_QUAD_DATA
-
-#define IMPL_IMGUI
 #define IMGUI_DESCRIPTOR_COUNT 1
 
-#define USE_CAMERA
+#define MODEL_PATH "models/sponza/sponza.obj"
+#define TEXTURE_PATH "models/sponza/"
 
 //
 // default values for camera

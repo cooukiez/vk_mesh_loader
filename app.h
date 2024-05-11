@@ -12,6 +12,8 @@
 
 #include "render/camera.h"
 
+#include <tiny_obj_loader.h>
+
 //
 // vulkan debug
 //
@@ -47,10 +49,11 @@ struct Vertex {
     glm::vec3 pos;
     glm::vec3 normal;
     glm::vec2 uv;
+    uint32_t mat_id;
 
     static VkVertexInputBindingDescription get_binding_desc();
 
-    static std::array<VkVertexInputAttributeDescription, 3> get_attrib_descs();
+    static std::array<VkVertexInputAttributeDescription, 4> get_attrib_descs();
 
     bool operator==(const Vertex& other) const {
         return pos == other.pos && normal == other.normal && uv == other.uv;
@@ -87,7 +90,7 @@ struct VCW_Image {
     VkImageView view;
 
     VkSampler sampler;
-    bool has_sampler = false;
+    bool combined_img_sampler = false;
 
     VkExtent3D extent;
     VkFormat format;
@@ -153,7 +156,13 @@ public:
     std::vector<VkCommandBuffer> cmd_bufs;
 
     VCW_Image depth_img;
-    VCW_Image tex_img;
+
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+
+    VkSampler sampler;
+    std::vector<VCW_Image> textures;
 
     std::vector<Vertex> vertices;
     VCW_Buffer vert_buf;
@@ -287,6 +296,8 @@ public:
 
     void create_img_view(VCW_Image *p_img, VkImageAspectFlags aspect_flags) const;
 
+    VkSampler create_sampler(VkFilter filter, VkSamplerAddressMode address_mode) const;
+
     void create_sampler(VCW_Image *p_img, VkFilter filter, VkSamplerAddressMode address_mode) const;
 
     static VkAccessFlags get_access_mask(VkImageLayout layout);
@@ -318,6 +329,10 @@ public:
     void write_buf_desc_binding(const VCW_Buffer &buf, uint32_t dst_set, uint32_t dst_binding, VkDescriptorType desc_type) const;
 
     void write_img_desc_binding(const VCW_Image &img, uint32_t dst_set, uint32_t dst_binding, VkDescriptorType desc_type) const;
+
+    void write_sampler_desc_binding(VkSampler sampler, uint32_t dst_set, uint32_t dst_binding) const;
+
+    void write_img_desc_array(const std::vector<VCW_Image> &imgs, uint32_t dst_set, uint32_t dst_binding, VkDescriptorType desc_type) const;
 
     void clean_up_desc() const;
 
@@ -366,6 +381,8 @@ public:
     void create_index_buf();
 
     void create_unif_bufs();
+
+    void create_textures_sampler();
 
     void create_textures();
 
