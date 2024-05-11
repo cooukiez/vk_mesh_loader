@@ -500,14 +500,14 @@ void App::render_loop() {
         stats.frame_time /= 2.0f;
 
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            cam.pos += cam.mov_lin;
+            cam.move_cam(cam.mov_lin);
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            cam.pos -= cam.mov_lin;
+            cam.move_cam(-cam.mov_lin);
 
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            cam.pos -= cam.mov_lat;
+            cam.move_cam(-cam.mov_lat);
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            cam.pos += cam.mov_lat;
+            cam.move_cam(cam.mov_lat);
         if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
             cam.speed = CAM_FAST;
         else

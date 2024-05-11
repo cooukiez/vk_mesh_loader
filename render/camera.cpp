@@ -9,6 +9,7 @@ void VCW_Camera::create_default_cam(VkExtent2D res) {
     up = glm::vec3(0.0f, 1.0f, 0.0f);
 
     yaw = -90.0f;
+    body_yaw = yaw;
     pitch = 0.0f;
 
     speed = CAM_SLOW;
@@ -30,7 +31,7 @@ void VCW_Camera::update_cam_rotation(const float dx, const float dy) {
     yaw += dx * sensitivity;
     pitch += dy * sensitivity;
 
-    yaw = glm::clamp(yaw, CAM_MIN_YAW, CAM_MAX_YAW);
+    yaw = glm::clamp(yaw, body_yaw - CAM_YAW_SPACE, body_yaw + CAM_YAW_SPACE);
     pitch = glm::clamp(pitch, CAM_MIN_PITCH, CAM_MAX_PITCH);
 
     front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
@@ -48,4 +49,9 @@ glm::mat4 VCW_Camera::get_view_proj() const {
     const glm::mat4 view = glm::lookAt(pos, pos + front, up);
 
     return proj * view;
+}
+
+void VCW_Camera::move_cam(glm::vec3 movement) {
+    body_yaw = yaw;
+    pos += movement;
 }

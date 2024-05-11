@@ -23,6 +23,7 @@ public:
     glm::vec3 right;
 
     float yaw;
+    float body_yaw;
     float pitch;
 
     glm::vec3 mov_lin; // forward / backward
@@ -43,6 +44,8 @@ public:
     void update_cam_rotation(float dx, float dy);
 
     glm::mat4 get_view_proj() const;
+
+    void move_cam(glm::vec3 movement);
 };
 
 #endif //VCW_CAMERA_H

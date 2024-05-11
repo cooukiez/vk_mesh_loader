@@ -71,8 +71,8 @@ const VkShaderStageFlags PUSH_CONSTANTS_STAGE = VK_SHADER_STAGE_ALL_GRAPHICS;
 
 #define CAM_MIN_PITCH (-89.0f)
 #define CAM_MAX_PITCH 89.0f
-#define CAM_MIN_YAW (-180.0f)
-#define CAM_MAX_YAW 180.0f
+
+#define CAM_YAW_SPACE 120.0f
 
 #define CAM_SLOW 1.0f
 #define CAM_FAST 10.0f
