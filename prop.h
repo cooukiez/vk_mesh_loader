@@ -47,18 +47,66 @@ constexpr VkImageSubresourceLayers DEFAULT_SUBRESOURCE_LAYERS = {VK_IMAGE_ASPECT
 
 constexpr VkBorderColor DEFAULT_SAMPLER_BORDER_COLOR = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 
-#define MODEL_INDEX 1
+#define MODEL_INDEX 2
 
 #if MODEL_INDEX == 0
+#define MODEL_PATH "models/armadillo/armadillo.obj"
+#define TEXTURE_PATH "models/armadillo/"
+#define CULL_MODE_FRONT
+#endif
+
+#if MODEL_INDEX == 1
+#define MODEL_PATH "models/bunny/bunny.obj"
+#define TEXTURE_PATH "models/bunny/"
+#define CULL_MODE_FRONT
+#endif
+
+#if MODEL_INDEX == 2
+#define MODEL_PATH "models/cornell-box-fix/cornell-box.obj"
+#define TEXTURE_PATH "models/cornell-box-fix/"
+#define CULL_MODE_BACK
+#endif
+
+#if MODEL_INDEX == 3
+#define MODEL_PATH "models/cow/cow.obj"
+#define TEXTURE_PATH "models/cow/"
+#define CULL_MODE_FRONT
+#endif
+
+#if MODEL_INDEX == 4
+#define MODEL_PATH "models/dragon/dragon.obj"
+#define TEXTURE_PATH "models/dragon/"
+#define CULL_MODE_FRONT
+#endif
+
+#if MODEL_INDEX == 5
+#define MODEL_PATH "models/duck/duck.obj"
+#define TEXTURE_PATH "models/duck/"
+#define CULL_MODE_FRONT
+#endif
+
+#if MODEL_INDEX == 6
+#define MODEL_PATH "models/lucy/lucy.obj"
+#define TEXTURE_PATH "models/lucy/"
+#define CULL_MODE_FRONT
+#endif
+
+#if MODEL_INDEX == 7
 #define MODEL_PATH "models/sponza/sponza.obj"
 #define TEXTURE_PATH "models/sponza/"
 #define CULL_MODE_FRONT
 #endif
 
-#if MODEL_INDEX == 1
-#define MODEL_PATH "models/cornell-box/cornell-box.obj"
-#define TEXTURE_PATH "models/cornell-box/"
-#define CULL_MODE_NONE
+#if MODEL_INDEX == 8
+#define MODEL_PATH "models/suzanne/suzanne.obj"
+#define TEXTURE_PATH "models/suzanne/"
+#define CULL_MODE_FRONT
+#endif
+
+#if MODEL_INDEX == 9
+#define MODEL_PATH "models/teapot/teapot.obj"
+#define TEXTURE_PATH "models/teapot/"
+#define CULL_MODE_FRONT
 #endif
 
 // Rasterization Stage

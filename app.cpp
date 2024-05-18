@@ -70,6 +70,9 @@ void App::load_model() {
 
     std::unordered_map<Vertex, uint32_t> unique_vertices{};
 
+    if (attrib.normals.empty())
+        throw std::runtime_error("model does not contain normals.");
+
     for (const auto &shape: shapes) {
         size_t index_offset = 0;
         for (size_t i = 0; i < shape.mesh.num_face_vertices.size(); i++) {
@@ -96,12 +99,17 @@ void App::load_model() {
                     attrib.normals[3 * index.normal_index + 2]
                 };
 
-                tinyobj::real_t *color = materials[mat_id].diffuse;
-                vertex.color = {
-                    color[0],
-                    color[1],
-                    color[2]
-                };
+                if (!materials.empty()) {
+                    tinyobj::real_t *color = materials[mat_id].diffuse;
+                    vertex.color = {
+                        color[0],
+                        color[1],
+                        color[2]
+                    };
+                } else {
+                    vertex.color = {1.0f, 1.0f, 1.0f};
+                }
+
 
                 if (!attrib.texcoords.empty()) {
                     vertex.uv = {
