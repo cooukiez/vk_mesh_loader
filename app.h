@@ -75,6 +75,7 @@ struct VCW_PushConstants {
 
 struct VCW_Uniform {
     uint32_t use_textures;
+    float shadow_attenuation;
 };
 
 struct VCW_Buffer {

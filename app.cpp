@@ -230,6 +230,10 @@ void App::create_depth_resources() {
 }
 
 void App::create_unif_bufs() {
+    if (!textures.empty())
+        ubo.use_textures = true;
+    ubo.shadow_attenuation = 0.5f;
+
     VkDeviceSize buf_size = sizeof(VCW_Uniform);
     unif_bufs.resize(MAX_FRAMES_IN_FLIGHT);
 
@@ -550,6 +554,8 @@ void App::render_loop() {
             ImGui::Checkbox("use textures", reinterpret_cast<bool *>(&ubo.use_textures));
         else
             ubo.use_textures = false;
+
+        ImGui::SliderFloat("shadow attenuation", &ubo.shadow_attenuation, 0.0f, 1.0f);
 
         ImGui::End();
 

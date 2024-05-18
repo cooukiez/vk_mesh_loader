@@ -47,29 +47,38 @@ constexpr VkImageSubresourceLayers DEFAULT_SUBRESOURCE_LAYERS = {VK_IMAGE_ASPECT
 
 constexpr VkBorderColor DEFAULT_SAMPLER_BORDER_COLOR = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 
+#define MODEL_INDEX 1
+
+#if MODEL_INDEX == 0
+#define MODEL_PATH "models/sponza/sponza.obj"
+#define TEXTURE_PATH "models/sponza/"
+#define CULL_MODE_FRONT
+#endif
+
+#if MODEL_INDEX == 1
+#define MODEL_PATH "models/cornell-box/cornell-box.obj"
+#define TEXTURE_PATH "models/cornell-box/"
+#define CULL_MODE_NONE
+#endif
+
 // Rasterization Stage
 constexpr VkBool32 DEPTH_CLAMP_ENABLE = VK_FALSE;
 constexpr VkBool32 RASTERIZER_DISCARD_ENABLE = VK_FALSE;
 constexpr VkPolygonMode POLYGON_MODE = VK_POLYGON_MODE_FILL;
-constexpr VkCullModeFlags CULL_MODE = VK_CULL_MODE_FRONT_BIT;
-constexpr VkFrontFace FRONT_FACE = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-
 constexpr VkShaderStageFlags PUSH_CONSTANTS_STAGE = VK_SHADER_STAGE_ALL_GRAPHICS;
+constexpr VkFrontFace FRONT_FACE = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+#ifdef CULL_MODE_NONE
+constexpr VkCullModeFlags CULL_MODE = VK_CULL_MODE_NONE;
+#endif
+#ifdef CULL_MODE_FRONT
+constexpr VkCullModeFlags CULL_MODE = VK_CULL_MODE_FRONT_BIT;
+#endif
+#ifdef CULL_MODE_BACK
+constexpr VkCullModeFlags CULL_MODE = VK_CULL_MODE_BACK_BIT;
+#endif
 
 #define IMGUI_DESCRIPTOR_COUNT 1
 #define DESCRIPTOR_TEXTURE_COUNT 32
-
-#define SPONZA
-#ifdef SPONZA
-#define MODEL_PATH "models/sponza/sponza.obj"
-#define TEXTURE_PATH "models/sponza/"
-#endif
-
-// #define CORNELL
-#ifdef CORNELL
-#define MODEL_PATH "models/cornell-box/cornell-box.obj"
-#define TEXTURE_PATH "models/cornell-box/"
-#endif
 
 //
 // default values for camera
