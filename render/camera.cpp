@@ -19,6 +19,9 @@ void VCW_Camera::create_default_cam(VkExtent2D res) {
     near = CAM_NEAR;
     far = CAM_FAR;
 
+    speed_fast = CAM_FAST;
+    speed_slow = CAM_SLOW;
+
     update_proj(res);
 }
 
@@ -54,4 +57,8 @@ glm::mat4 VCW_Camera::get_view_proj() const {
 void VCW_Camera::move_cam(glm::vec3 movement) {
     body_yaw = yaw;
     pos += movement;
+}
+
+void VCW_Camera::set_speed(const bool fast) {
+    speed = fast ? speed_fast : speed_slow;
 }

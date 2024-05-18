@@ -15,7 +15,7 @@
 #define APP_NAME "Vulkan App"
 #define ENGINE_NAME "No Engine"
 
-// #define VERBOSE
+#define VERBOSE
 #define VALIDATION
 
 const std::vector<const char *> val_layers = {
@@ -24,6 +24,7 @@ const std::vector<const char *> val_layers = {
 
 const std::vector<const char *> dev_exts = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        // VK_EXT_PIPELINE_ROBUSTNESS_EXTENSION_NAME // not available
         // VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME // not required anymore
 };
 
@@ -33,32 +34,42 @@ const std::vector<const char *> dev_exts = {
 #define FULLSCREEN_RES_DIV 1
 // #define IMGUI_SCALE_OVERLAY
 
-const VkFormat PREFERRED_FORMAT = VK_FORMAT_B8G8R8A8_SRGB;
-const VkColorSpaceKHR PREFERRED_COLOR_SPACE = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-const VkPresentModeKHR PREFERRED_PRES_MODE = VK_PRESENT_MODE_FIFO_KHR;
-const VkCompositeAlphaFlagBitsKHR PREFERRED_COMPOSITE_ALPHA = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+constexpr VkFormat PREFERRED_FORMAT = VK_FORMAT_B8G8R8A8_SRGB;
+constexpr VkColorSpaceKHR PREFERRED_COLOR_SPACE = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+constexpr VkPresentModeKHR PREFERRED_PRES_MODE = VK_PRESENT_MODE_FIFO_KHR;
+constexpr VkCompositeAlphaFlagBitsKHR PREFERRED_COMPOSITE_ALPHA = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
-const VkImageUsageFlags SWAP_IMG_USAGE = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+constexpr VkImageUsageFlags SWAP_IMG_USAGE = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-const VkComponentMapping DEFAULT_COMPONENT_MAPPING = {.r = VK_COMPONENT_SWIZZLE_IDENTITY, .g = VK_COMPONENT_SWIZZLE_IDENTITY, .b = VK_COMPONENT_SWIZZLE_IDENTITY, .a = VK_COMPONENT_SWIZZLE_IDENTITY};
-const VkImageSubresourceRange DEFAULT_SUBRESOURCE_RANGE = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1};
-const VkImageSubresourceLayers DEFAULT_SUBRESOURCE_LAYERS = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+constexpr VkComponentMapping DEFAULT_COMPONENT_MAPPING = {.r = VK_COMPONENT_SWIZZLE_IDENTITY, .g = VK_COMPONENT_SWIZZLE_IDENTITY, .b = VK_COMPONENT_SWIZZLE_IDENTITY, .a = VK_COMPONENT_SWIZZLE_IDENTITY};
+constexpr VkImageSubresourceRange DEFAULT_SUBRESOURCE_RANGE = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1};
+constexpr VkImageSubresourceLayers DEFAULT_SUBRESOURCE_LAYERS = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
 
-const VkBorderColor DEFAULT_SAMPLER_BORDER_COLOR = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+constexpr VkBorderColor DEFAULT_SAMPLER_BORDER_COLOR = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 
 // Rasterization Stage
-const VkBool32 DEPTH_CLAMP_ENABLE = VK_FALSE;
-const VkBool32 RASTERIZER_DISCARD_ENABLE = VK_FALSE;
-const VkPolygonMode POLYGON_MODE = VK_POLYGON_MODE_FILL;
-const VkCullModeFlags CULL_MODE = VK_CULL_MODE_FRONT_BIT;
-const VkFrontFace FRONT_FACE = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+constexpr VkBool32 DEPTH_CLAMP_ENABLE = VK_FALSE;
+constexpr VkBool32 RASTERIZER_DISCARD_ENABLE = VK_FALSE;
+constexpr VkPolygonMode POLYGON_MODE = VK_POLYGON_MODE_FILL;
+constexpr VkCullModeFlags CULL_MODE = VK_CULL_MODE_FRONT_BIT;
+constexpr VkFrontFace FRONT_FACE = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
-const VkShaderStageFlags PUSH_CONSTANTS_STAGE = VK_SHADER_STAGE_ALL_GRAPHICS;
+constexpr VkShaderStageFlags PUSH_CONSTANTS_STAGE = VK_SHADER_STAGE_ALL_GRAPHICS;
 
 #define IMGUI_DESCRIPTOR_COUNT 1
+#define DESCRIPTOR_TEXTURE_COUNT 32
 
+#define SPONZA
+#ifdef SPONZA
 #define MODEL_PATH "models/sponza/sponza.obj"
 #define TEXTURE_PATH "models/sponza/"
+#endif
+
+// #define CORNELL
+#ifdef CORNELL
+#define MODEL_PATH "models/cornell-box/cornell-box.obj"
+#define TEXTURE_PATH "models/cornell-box/"
+#endif
 
 //
 // default values for camera
@@ -66,7 +77,7 @@ const VkShaderStageFlags PUSH_CONSTANTS_STAGE = VK_SHADER_STAGE_ALL_GRAPHICS;
 #define CAM_FOV 60.0f
 #define CAM_SENSITIVITY 0.1f
 
-#define CAM_NEAR 0.1f   .
+#define CAM_NEAR 0.1f
 #define CAM_FAR 4096.0f
 
 #define CAM_MIN_PITCH (-89.0f)

@@ -30,6 +30,9 @@ public:
     glm::vec3 mov_lat; // sideways
 
     float speed;
+    float speed_slow;
+    float speed_fast;
+
     float sensitivity;
     float fov;
 
@@ -46,6 +49,8 @@ public:
     glm::mat4 get_view_proj() const;
 
     void move_cam(glm::vec3 movement);
+
+    void set_speed(bool fast);
 };
 
 #endif //VCW_CAMERA_H

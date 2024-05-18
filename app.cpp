@@ -38,6 +38,8 @@ void App::init_app() {
     create_vert_buf();
     create_index_buf();
 
+    create_unif_bufs();
+
     create_frame_bufs(swap_imgs);
 
     create_desc_pool_layout();
@@ -54,6 +56,10 @@ void App::init_app() {
     create_query_pool(2);
 
     cam.create_default_cam(render_extent);
+    const float largest_dim = max_component(max_vert_coord - min_vert_coord);
+    std::cout << "largest scene dimension: " << largest_dim << std::endl;
+    cam.speed_fast = largest_dim / 100.0f;
+    cam.speed_slow = largest_dim / 500.0f;
 }
 
 void App::load_model() {
@@ -70,9 +76,6 @@ void App::load_model() {
             size_t face_vertices = shape.mesh.num_face_vertices[i];
             size_t mat_id = shape.mesh.material_ids[i];
 
-            if (mat_id > materials.size())
-                std::cout << "material id out of bounds." << std::endl;
-
             for (size_t j = 0; j < face_vertices; j++) {
                 tinyobj::index_t index = shape.mesh.indices[index_offset + j];
 
@@ -84,16 +87,28 @@ void App::load_model() {
                     attrib.vertices[3 * index.vertex_index + 2]
                 };
 
+                min_vert_coord = glm::min(min_vert_coord, vertex.pos);
+                max_vert_coord = glm::max(max_vert_coord, vertex.pos);
+
                 vertex.normal = {
                     attrib.normals[3 * index.normal_index + 0],
                     attrib.normals[3 * index.normal_index + 1],
                     attrib.normals[3 * index.normal_index + 2]
                 };
 
-                vertex.uv = {
-                    attrib.texcoords[2 * index.texcoord_index + 0],
-                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                tinyobj::real_t *color = materials[mat_id].diffuse;
+                vertex.color = {
+                    color[0],
+                    color[1],
+                    color[2]
                 };
+
+                if (!attrib.texcoords.empty()) {
+                    vertex.uv = {
+                        attrib.texcoords[2 * index.texcoord_index + 0],
+                        1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                    };
+                }
 
                 vertex.mat_id = static_cast<uint32_t>(mat_id);
 
@@ -108,6 +123,9 @@ void App::load_model() {
             index_offset += face_vertices;
         }
     }
+
+    std::cout << "min vertex coord: " << min_vert_coord << std::endl;
+    std::cout << "max vertex coord: " << max_vert_coord << std::endl;
 }
 
 void App::create_vert_buf() {
@@ -143,8 +161,9 @@ void App::create_index_buf() {
     clean_up_buf(staging_buf);
 }
 
+// TODO: implement texture set (every texture single time)
 void App::create_textures() {
-    std::cout << materials.size() << std::endl;
+    std::cout << "material count: " << materials.size() << std::endl;
     for (const auto &mat: materials) {
         if (mat.diffuse_texname.empty())
             continue;
@@ -154,10 +173,11 @@ void App::create_textures() {
         /*
         if (textures.find(mat.diffuse_texname) != textures.end())
             continue;
-            */
+        */
 
         int tex_width, tex_height, tex_channels;
-        stbi_uc *pixels = stbi_load((TEXTURE_PATH + mat.diffuse_texname).c_str(), &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
+        stbi_uc *pixels = stbi_load((TEXTURE_PATH + mat.diffuse_texname).c_str(), &tex_width, &tex_height,
+                                    &tex_channels, STBI_rgb_alpha);
         const VkDeviceSize img_size = tex_width * tex_height * 4;
 
         if (!pixels)
@@ -176,10 +196,12 @@ void App::create_textures() {
                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         VkCommandBuffer cmd_buf = begin_single_time_cmd();
-        transition_img_layout(cmd_buf, &tex_img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        transition_img_layout(cmd_buf, &tex_img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                              VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                               VK_PIPELINE_STAGE_TRANSFER_BIT);
         cp_buf_to_img(cmd_buf, staging_buf, tex_img, extent);
-        transition_img_layout(cmd_buf, &tex_img, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT,
+        transition_img_layout(cmd_buf, &tex_img, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                              VK_PIPELINE_STAGE_TRANSFER_BIT,
                               VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
         end_single_time_cmd(cmd_buf);
 
@@ -192,6 +214,7 @@ void App::create_textures() {
         */
         textures.push_back(tex_img);
     }
+    std::cout << "loaded textures: " << textures.size() << std::endl;
 }
 
 void App::create_textures_sampler() {
@@ -206,9 +229,31 @@ void App::create_depth_resources() {
     create_img_view(&depth_img, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
+void App::create_unif_bufs() {
+    VkDeviceSize buf_size = sizeof(VCW_Uniform);
+    unif_bufs.resize(MAX_FRAMES_IN_FLIGHT);
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        unif_bufs[i] = create_buf(buf_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        map_buf(&unif_bufs[i]);
+    }
+}
+
 void App::create_desc_pool_layout() {
     std::vector<VkDescriptorSetLayoutBinding> bindings;
     uint32_t last_binding = 0;
+
+    VkDescriptorSetLayoutBinding uniform_layout_binding{};
+    uniform_layout_binding.binding = last_binding;
+    uniform_layout_binding.descriptorCount = 1;
+    uniform_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uniform_layout_binding.pImmutableSamplers = nullptr;
+    uniform_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings.push_back(uniform_layout_binding);
+    last_binding++;
+
     VkDescriptorSetLayoutBinding sampler_layout_binding{};
     sampler_layout_binding.binding = last_binding;
     sampler_layout_binding.descriptorCount = 1;
@@ -220,7 +265,9 @@ void App::create_desc_pool_layout() {
 
     VkDescriptorSetLayoutBinding textures_layout_binding{};
     textures_layout_binding.binding = last_binding;
-    textures_layout_binding.descriptorCount = static_cast<uint32_t>(textures.size());
+    if (textures.size() > DESCRIPTOR_TEXTURE_COUNT)
+        throw std::runtime_error("allowed texture count to small to fit all textures.");
+    textures_layout_binding.descriptorCount = DESCRIPTOR_TEXTURE_COUNT;
     textures_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     textures_layout_binding.pImmutableSamplers = nullptr;
     textures_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -231,8 +278,9 @@ void App::create_desc_pool_layout() {
         add_desc_set_layout(static_cast<uint32_t>(bindings.size()), bindings.data());
     }
 
-    add_pool_size(1, VK_DESCRIPTOR_TYPE_SAMPLER);
-    add_pool_size(MAX_FRAMES_IN_FLIGHT * textures.size(), VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+    add_pool_size(MAX_FRAMES_IN_FLIGHT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    add_pool_size(MAX_FRAMES_IN_FLIGHT, VK_DESCRIPTOR_TYPE_SAMPLER);
+    add_pool_size(MAX_FRAMES_IN_FLIGHT * DESCRIPTOR_TEXTURE_COUNT, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
     add_pool_size(IMGUI_DESCRIPTOR_COUNT, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 }
 
@@ -370,9 +418,16 @@ void App::create_pipe() {
 void App::write_desc_pool() const {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         uint32_t last_binding = 0;
+
+        write_buf_desc_binding(unif_bufs[i], static_cast<uint32_t>(i), last_binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        last_binding++;
+
         write_sampler_desc_binding(sampler, static_cast<uint32_t>(i), last_binding);
         last_binding++;
-        write_img_desc_array(textures, static_cast<uint32_t>(i), last_binding, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+
+        if (!textures.empty()) {
+            write_img_desc_array(textures, static_cast<uint32_t>(i), last_binding, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+        }
         last_binding++;
     }
 }
@@ -381,9 +436,11 @@ void App::update_bufs(uint32_t index_inflight_frame) {
     push_const.view_proj = cam.get_view_proj();
     push_const.res = {render_extent.width, render_extent.height};
     push_const.time = stats.frame_count;
+
+    memcpy(unif_bufs[index_inflight_frame].p_mapped_mem, &ubo, sizeof(ubo));
 }
 
-void App::record_cmd_buf(VkCommandBuffer cmd_buf, uint32_t img_index) const {
+void App::record_cmd_buf(VkCommandBuffer cmd_buf, const uint32_t img_index) const {
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -489,6 +546,11 @@ void App::render_loop() {
 
         ImGui::SliderInt("num indices", &indices_count, 0, static_cast<int>(indices.size()));
 
+        if (!textures.empty())
+            ImGui::Checkbox("use textures", reinterpret_cast<bool *>(&ubo.use_textures));
+        else
+            ubo.use_textures = false;
+
         ImGui::End();
 
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -509,9 +571,9 @@ void App::render_loop() {
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
             cam.move_cam(cam.mov_lat);
         if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-            cam.speed = CAM_FAST;
+            cam.set_speed(true);
         else
-            cam.speed = CAM_SLOW;
+            cam.set_speed(false);
 
         stats.frame_count++;
 
@@ -540,7 +602,11 @@ void App::clean_up() {
     clean_up_pipe();
     clean_up_desc();
 
-    // clean_up_img(tex_img);
+    for (const auto buf: unif_bufs)
+        clean_up_buf(buf);
+
+    for (const auto texture: textures)
+        clean_up_img(texture);
 
     clean_up_buf(vert_buf);
     clean_up_buf(index_buf);

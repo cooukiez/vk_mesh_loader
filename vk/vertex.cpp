@@ -13,8 +13,8 @@ VkVertexInputBindingDescription Vertex::get_binding_desc() {
     return binding_desc;
 }
 
-std::array<VkVertexInputAttributeDescription, 4> Vertex::get_attrib_descs() {
-    std::array<VkVertexInputAttributeDescription, 4> attrib_descs{};
+std::array<VkVertexInputAttributeDescription, 5> Vertex::get_attrib_descs() {
+    std::array<VkVertexInputAttributeDescription, 5> attrib_descs{};
 
     attrib_descs[0].binding = 0;
     attrib_descs[0].location = 0;
@@ -28,13 +28,18 @@ std::array<VkVertexInputAttributeDescription, 4> Vertex::get_attrib_descs() {
 
     attrib_descs[2].binding = 0;
     attrib_descs[2].location = 2;
-    attrib_descs[2].format = VK_FORMAT_R32G32_SFLOAT;
-    attrib_descs[2].offset = offsetof(Vertex, uv);
+    attrib_descs[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attrib_descs[2].offset = offsetof(Vertex, color);
 
     attrib_descs[3].binding = 0;
     attrib_descs[3].location = 3;
-    attrib_descs[3].format = VK_FORMAT_R32_UINT;
-    attrib_descs[3].offset = offsetof(Vertex, mat_id);
+    attrib_descs[3].format = VK_FORMAT_R32G32_SFLOAT;
+    attrib_descs[3].offset = offsetof(Vertex, uv);
+
+    attrib_descs[4].binding = 0;
+    attrib_descs[4].location = 4;
+    attrib_descs[4].format = VK_FORMAT_R32_UINT;
+    attrib_descs[4].offset = offsetof(Vertex, mat_id);
 
     return attrib_descs;
 }

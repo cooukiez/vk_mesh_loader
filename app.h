@@ -48,12 +48,13 @@ struct VCW_SwapSupport {
 struct Vertex {
     glm::vec3 pos;
     glm::vec3 normal;
+    glm::vec3 color;
     glm::vec2 uv;
     uint32_t mat_id;
 
     static VkVertexInputBindingDescription get_binding_desc();
 
-    static std::array<VkVertexInputAttributeDescription, 4> get_attrib_descs();
+    static std::array<VkVertexInputAttributeDescription, 5> get_attrib_descs();
 
     bool operator==(const Vertex& other) const {
         return pos == other.pos && normal == other.normal && uv == other.uv;
@@ -73,7 +74,7 @@ struct VCW_PushConstants {
 };
 
 struct VCW_Uniform {
-    alignas(16) glm::mat4 data;
+    uint32_t use_textures;
 };
 
 struct VCW_Buffer {
@@ -166,6 +167,8 @@ public:
 
     std::vector<Vertex> vertices;
     VCW_Buffer vert_buf;
+    glm::vec3 min_vert_coord;
+    glm::vec3 max_vert_coord;
     std::vector<uint32_t> indices;
     int indices_count;
     VCW_Buffer index_buf;

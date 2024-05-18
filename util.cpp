@@ -25,3 +25,24 @@ std::ostream &operator<<(std::ostream &os, const glm::vec3 &v) {
     os << "[" << v.x << ", " << v.y << ", " << v.z << "]";
     return os;
 }
+
+std::ostream &operator<<(std::ostream &os, const glm::vec4 &v) {
+    os << "[" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << "]";
+    return os;
+}
+
+float min_component(const glm::vec3 v) {
+    return std::min(v.x, std::min(v.y, v.z));
+}
+
+float min_component(const glm::vec4 v) {
+    return std::min(v.x, std::min(v.y, std::min(v.z, v.w)));
+}
+
+float max_component(const glm::vec3 v) {
+    return std::max(v.x, std::max(v.y, v.z));
+}
+
+float max_component(const glm::vec4 v) {
+    return std::max(v.x, std::max(v.y, std::max(v.z, v.w)));
+}
