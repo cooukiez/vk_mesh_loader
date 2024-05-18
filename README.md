@@ -4,6 +4,8 @@ based of the [Vulkan Tutorial from Alexander Overvoorde](https://vulkan-tutorial
 Contains a simple class system and supports a compact fly cam to explore the model. Model loading is
 only for `.obj` files and is done with [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader).
 
+Model selection available via precompiler in `prop.h`, just change the `MODEL_INDEX`.
+
 ## Building
 use vcpkg for Windows
 ### Dependencies
@@ -11,3 +13,8 @@ use vcpkg for Windows
 - GLFW
 - tinyobjloader
 - GLM
+
+## ToDo
+- [ ] Add more models
+- [ ] Add more lighting models
+- [ ] fix cornell box model ***again***

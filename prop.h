@@ -62,8 +62,8 @@ constexpr VkBorderColor DEFAULT_SAMPLER_BORDER_COLOR = VK_BORDER_COLOR_INT_OPAQU
 #endif
 
 #if MODEL_INDEX == 2
-#define MODEL_PATH "models/cornell-box-fix/cornell-box.obj"
-#define TEXTURE_PATH "models/cornell-box-fix/"
+#define MODEL_PATH "models/cornell-box/cornell-box.obj"
+#define TEXTURE_PATH "models/cornell-box/"
 #define CULL_MODE_BACK
 #endif
 

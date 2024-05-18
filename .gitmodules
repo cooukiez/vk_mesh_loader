@@ -1,3 +1,6 @@
 [submodule "imgui"]
 	path = imgui
 	url = https://github.com/ocornut/imgui
+[submodule "models"]
+	path = models
+	url = https://github.com/cooukiez/3d_test_models
