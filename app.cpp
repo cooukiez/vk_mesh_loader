@@ -622,6 +622,8 @@ void App::clean_up() {
     for (const auto texture: textures)
         clean_up_img(texture);
 
+    vkDestroySampler(dev, sampler, nullptr);
+
     clean_up_buf(vert_buf);
     clean_up_buf(index_buf);
 
